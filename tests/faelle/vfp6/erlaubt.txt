@@ -1,0 +1,22 @@
+* TRY CATCH FINALLY ENDTRY THROW Collection Empty TEXTMERGE TEXT TO ICASE EVL CAST
+NOTE LOCAL x AS Object BINDEVENT ADDPROPERTY STREXTRACT EXECSCRIPT XMLTOCURSOR CURSORTOXML
+lc = "TRY CATCH Empty ICASE() BINDEVENT()" && TRY CATCH
+lc = 'Collection TEXT TO EVL() CAST()' && LOCAL x AS Object
+lc = [STREXTRACT() EXECSCRIPT() XMLTOCURSOR() CURSORTOXML()]
+lc = "&&" + 'GETWORDCOUNT() GETWORDNUM() INPUTBOX()'
+ll = EMPTY("")
+RETURN [ICASE() Empty Collection]
+lo.NewObject("Empty", "Custom", "x.vcx")
+lo.AddObject("Collection", "Custom")
+ln = laWerte[1]
+ll = .T. && CREATEOBJECT("Empty")
+DEFINE CLASS x AS Custom
+ADD OBJECT lo AS Custom
+DECLARE INTEGER Foo IN win32api AS Bar
+SELECT a AS b FROM c INTO CURSOR d
+CREATE CURSOR x (v C(1), q N(3), w M)
+TEXT
+TRY
+CREATEOBJECT("Collection")
+ICASE( ausserhalb des Ausdrucks und <<"ICASE(">>
+ENDTEXT

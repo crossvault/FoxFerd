@@ -1,0 +1,17 @@
+# Lokale Quellpakete und Pruefwerkzeuge, nicht zur Weitergabe im Repo
+_ferd/
+tools/kosit/
+/xsd/
+*.zip
+
+# Laufzeitreste von VFP und FoxBin2PRG
+*.bak
+*.err
+*.fxp
+foxuser.*
+
+# Testausgaben
+tests/out/
+
+# Nicht Teil der Testsuite (DESIGN.md: eigene Test-PRG)
+FoxUnit/

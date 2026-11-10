@@ -1,0 +1,10 @@
+DEFINE CLASS pruef AS Custom
+    *<PropValue>
+        cHinweis = ICASE() TRY CATCH Collection Empty
+    *</PropValue>
+    PROCEDURE Rechnen
+        *<PropValue>
+        RETURN ICASE(.T., 1, 0)
+        *</PropValue>
+    ENDPROC
+ENDDEFINE

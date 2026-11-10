@@ -1,0 +1,15 @@
+* text=auto
+*.prg text eol=crlf
+*.vc2 text eol=crlf
+*.h text eol=crlf
+*.ps1 text eol=crlf
+tests/felder.csv text eol=crlf
+tests/regeln.csv text eol=crlf
+docs/FELDER.md text eol=crlf
+docs/REGELN.md text eol=crlf
+*.sh text eol=lf
+*.js text eol=lf
+*.vcx binary
+*.vct binary
+# Fremde Schemas bleiben byte-identisch zur Quelle.
+*.xsd -text
