@@ -70,7 +70,8 @@ $vfpCases = @('WP01-LADEN', 'WP01-ERROR', 'WP01-PROFIL',
     'WP31-WIEDERHOLUNG', 'WP31-BEISPIEL', 'WP31-GEGENPROBE',
     'WP32-FELDER', 'WP32-POSITIV', 'WP32-EXTENDED', 'WP32-BEISPIELE', 'WP32-REGRESSION', 'WP32-LAST',
     'WP34-OHNE-XFRX', 'WP34-VERSION', 'WP34-PROFIL', 'WP34-BLOCKIERT', 'WP34-ABLAUF',
-    'WP34-XFRX-FEHLER', 'WP34-ZIEL', 'WP34-ECHT-EN', 'WP34-ECHT-EXT', 'WP34-BEISPIEL')
+    'WP34-XFRX-FEHLER', 'WP34-ZIEL', 'WP34-ECHT-EN', 'WP34-ECHT-EXT', 'WP34-BEISPIEL',
+    'WP35-SCHNELLSTART', 'WP35-BEISPIELE')
 $hostCases = @('WP01-RUN-FAIL', 'WP01-RUN-BERICHT', 'WP01-RUN-ALT', 'WP01-RUN-VFP',
     'WP01-RUN-FOXBIN', 'WP01-RUN-LIMIT', 'WP01-WAECHTER', 'WP01-VFP6-VERBOT',
     'WP01-VFP6-TEXT', 'WP01-ASCII', 'WP01-CRLF', 'WP01-PFLICHT',
@@ -78,7 +79,8 @@ $hostCases = @('WP01-RUN-FAIL', 'WP01-RUN-BERICHT', 'WP01-RUN-ALT', 'WP01-RUN-VF
     'WP02-BERICHT', 'WP02-JAVA', 'WP02-ALT', 'WP02-STDIN', 'WP02-BUDGET',
     'WP08-UNBEKANNT', 'WP08-REFERENZ', 'WP08-FOXFERD', 'WP08-M1-LAUFZEIT',
     'WP09-BLAETTER', 'WP09-FXEXT', 'WP09-XSD', 'WP09-FEHLER', 'WP09-REPRO', 'WP09-SCHNITT',
-    'WP10-STATUS', 'WP10-DRIFT', 'WP10-REPRO', 'WP22-CACHE', 'WP32-REGELN', 'WP32-SELBSTTEST', 'WP32-PAKET', 'WP34-WAECHTER')
+    'WP10-STATUS', 'WP10-DRIFT', 'WP10-REPRO', 'WP22-CACHE', 'WP32-REGELN', 'WP32-SELBSTTEST', 'WP32-PAKET', 'WP34-WAECHTER',
+    'WP35-LINKS', 'WP35-ANWENDERSICHT', 'WP35-API')
 $script:xfrxPath = ''
 $script:xfrxVersions = @()
 $referencePlan = @()
@@ -327,6 +329,16 @@ function Start-Runtime {
     Write-Ascii (Join-Path $directory 'counter-profiles.id') (',' + ($CounterProfiles -join ',') + ',')
     Write-Ascii (Join-Path $directory 'xfrx-root.id') $script:xfrxPath
     Write-Ascii (Join-Path $directory 'xsd-root.id') (Join-Path $root '_ferd/_foxferd-xsd')
+    if ($Cases -ccontains 'WP35-SCHNELLSTART' -or $Cases -ccontains 'WP35-BEISPIELE' -or $Cases -ccontains 'WP08-BEISPIELE') {
+        # Der unveraenderte README-Code arbeitet aus seiner Laufzeitkopie mit xsd.
+        $preparedRoot = Join-Path $root '_ferd/_foxferd-xsd'
+        foreach ($file in [IO.Directory]::EnumerateFiles($preparedRoot, '*', [IO.SearchOption]::AllDirectories)) {
+            $relative = $file.Substring($preparedRoot.Length).TrimStart('\', '/')
+            $target = Join-Path $directory ('xsd/' + $relative)
+            [void] [IO.Directory]::CreateDirectory((Split-Path $target -Parent))
+            [IO.File]::Copy($file, $target)
+        }
+    }
     if ($referencePlan.Count -gt 0 -and -not $Mode) {
         Write-Ascii (Join-Path $directory 'reference-plan.txt') (($referencePlan -join "`r`n") + "`r`n")
         [void] [IO.Directory]::CreateDirectory((Join-Path $directory 'xml'))
@@ -552,7 +564,7 @@ function Complete-RunnerProbes {
 }
 
 function Start-HostCheck {
-    param([ValidateSet('Inventar', 'Doku', 'Paket')] [string] $Kind)
+    param([ValidateSet('Inventar', 'Doku', 'Paket', 'Anwenderdoku')] [string] $Kind)
     $script = Join-Path $runRoot 'host-check.ps1'
     if (-not (Test-Path -LiteralPath $script)) {
         Write-Ascii $script @'
@@ -566,6 +578,9 @@ try {
     } elseif ($Kind -ceq 'Doku') {
         . (Join-Path $Root 'tests/generate-docs.ps1') -Library -Root $Root
         $cases = @(Test-Docs $Root $Out)
+    } elseif ($Kind -ceq 'Anwenderdoku') {
+        . (Join-Path $Root 'tests/user-docs.ps1')
+        $cases = @(Test-UserDocs $Root)
     } else {
         . (Join-Path $Root 'tests/wp32-package.ps1')
         $cases = @(Test-FerdPreparation $Root $Out)
@@ -769,11 +784,16 @@ try {
     $plan = @(New-VfpWorkPlan @($vfpCases | Where-Object { $_ -like $Nur }) $workerCount)
     Write-Host ('VFP-PLAN|KERNE|' + $cores + '|FREIER-COMMIT|' + $freeCommit + '|PROZESSE-JE-RUNTIME|' + $plan.Count)
     # Hostpruefungen sind schreibfrei an den Quellen; alle Laufzeitausgaben sind getrennt.
-    foreach ($kind in @('Inventar', 'Doku', 'Paket')) { $hostJobs += Start-HostCheck $kind }
+    foreach ($kind in @('Inventar', 'Doku', 'Paket', 'Anwenderdoku')) { $hostJobs += Start-HostCheck $kind }
     foreach ($runtime in @('VFP9', 'VFPA')) { $runtimeStarted[$runtime] = [DateTime]::UtcNow }
     foreach ($worker in $plan) {
         foreach ($runtime in @('VFP9', 'VFPA')) {
             $directory = Join-Path $runRoot ('vfp-workers/' + $runtime + '/' + $worker.Name)
+            if ($worker.Cases -ccontains 'WP35-SCHNELLSTART' -or $worker.Cases -ccontains 'WP35-BEISPIELE' -or
+                $worker.Cases -ccontains 'WP08-BEISPIELE') {
+                # Die langen FeRD-Importnamen muessen unter der MSXML-Pfadgrenze bleiben.
+                $directory = Join-Path $runRoot ('s-' + $runtime + '-' + $worker.Name.Substring(7))
+            }
             $runtimeJobs += Start-Runtime $runtime $executables[$runtime] -Directory $directory -Cases $worker.Cases -Worker $worker.Name -CounterProfiles $worker.Profiles
         }
     }
@@ -835,6 +855,7 @@ try {
     Assert-RequiredCases @('WP09-BLAETTER', 'WP09-FXEXT', 'WP09-XSD', 'WP09-FEHLER', 'WP09-REPRO', 'WP09-SCHNITT') $inventoryCases
     Assert-RequiredCases @('WP10-STATUS', 'WP10-API', 'WP10-DRIFT', 'WP10-REPRO', 'WP10-PROFILE') $documentationCases
     Assert-RequiredCases @('WP32-FELDER', 'WP32-REGELN') $documentationCases
+    Assert-RequiredCases @('WP35-LINKS', 'WP35-ANWENDERSICHT', 'WP35-API') @($hostResults['Anwenderdoku'].Cases)
     $inventoryDocsSeconds = $hostResults['Inventar'].Seconds + $hostResults['Doku'].Seconds
     if ($inventoryDocsSeconds -ge 60) {
         Write-Warning ('BUDGET: Inventar und Doku zusammen ' + [Math]::Round($inventoryDocsSeconds, 1) + ' s (Ziel: unter 60 s).')
@@ -852,6 +873,9 @@ try {
     }
     $m2References = @($selected | Where-Object { $_ -cin @('WP32-FELDER', 'WP32-POSITIV', 'WP32-EXTENDED', 'WP32-BEISPIELE', 'WP32-LAST') })
     if ($m2References.Count -gt 0) { Assert-RequiredCases $m2References $referenceCases }
+    if ($selected -ccontains 'WP35-SCHNELLSTART') {
+        Assert-RequiredCases @('WP35-SCHNELLSTART') $referenceCases
+    }
     $requiredCounterProbes = @($selected | Where-Object { $_ -in @('WP08-UNBEKANNT','WP08-REFERENZ','WP08-FOXFERD') })
     if ($requiredCounterProbes.Count -gt 0) { Assert-RequiredCases $requiredCounterProbes $referenceCases }
     Assert-RequiredCases @('WP02-E05', 'WP02-E10', 'WP02-XR', 'WP02-X10', 'WP02-X15',

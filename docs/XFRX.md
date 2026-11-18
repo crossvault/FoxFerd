@@ -1,31 +1,61 @@
-# PDF mit einem eigenen XFRX
+# PDF mit eingebettetem XML erzeugen
 
-FoxFerd kann ab WP34 einen vorhandenen FRX-Report durch XFRX als PDF/A-3B ausgeben lassen und
-das geprüfte Rechnungs-XML als `factur-x.xml` einbetten. Dafür brauchen Sie eine eigene
-**XFRX-Lizenz von Eqeus, mindestens Version 19.0**, einschließlich der zu Ihrer Laufzeit
-passenden nativen Bibliotheken. FoxFerd liefert keine XFRX-Datei mit. Seine MIT-Lizenz bleibt
-unverändert. XML-Erzeugung und Bibliotheksbau brauchen kein XFRX.
+FoxFerd kann deinen FRX-Report mit einer eigenen XFRX-Installation als PDF/A-3B ausgeben
+und das Rechnungs-XML als `factur-x.xml` einbetten. Ein FRX ist eine FoxPro-Reportdefinition.
+PDF/A-3 ist eine PDF-Variante zur Aufbewahrung mit eingebetteten Dateien.
+Du brauchst eine eigene XFRX-Lizenz von Eqeus, mindestens Version 19.0, und die passenden
+nativen Bibliotheken. FoxFerd liefert keine XFRX-Dateien mit.
 
-## Aufruf
+## Voraussetzungen
 
-Daten, geöffnete Tabellen und PRIVATE/PUBLIC-Variablen des Reports stellen Sie wie vor
-`REPORT FORM` bereit. Verwenden Sie eine frische XFRX-Sitzung je PDF. Eine übergebene Sitzung
-wird konfiguriert und abgeschlossen; sie ist kein Behälter für weitere Anhänge oder Reports.
-Der Adapter wechselt die Datensitzung nicht.
+- Die [erste XML-Rechnung](../README.md#erste-rechnung) funktioniert mit deiner Schemawurzel `xsd`.
+- XFRX ist für die verwendete FoxPro-Laufzeit eingerichtet und über deren Suchpfad erreichbar.
+- Dein Report, seine Tabellen und gegebenenfalls PRIVATE-/PUBLIC-Variablen sind vorbereitet.
+- Der vorhandene Zielordner ist beschreibbar.
+
+Ein Report mit privater Data Session sieht die Cursor des Aufrufers nicht. Eine Data Session
+ist FoxPros Bereich für offene Tabellen. Stelle die Daten im vom Report verwendeten Bereich
+bereit, wie vor `REPORT FORM`. FoxFerd wechselt die Data Session für den Report nicht.
+Das sichtbare PDF und das XML müssen dieselben Rechnungsdaten zeigen.
+
+## Aufruf mit eigenem Report
+
+Voraussetzung für dieses vollständige Aufrufbeispiel: Du arbeitest aus dem Hauptordner,
+hast `xsd` vorbereitet und einen eigenen `rechnung.frx` samt Daten für die beiden Positionen
+der Standardrechnung bereitgestellt. Passe den XFRX-Installationspfad an.
+Die Datenroutine aus dem Beispiel befüllt nur FoxFerd, nicht die Cursor deines Reports.
 
 ```foxpro
+LOCAL loF, llOk, lcAlias
 SET CLASSLIB TO foxferd.vcx ADDITIVE
+SET PROCEDURE TO beispiele/01_standardrechnung.prg ADDITIVE
 SET PATH TO C:\MeineApp\XFRX ADDITIVE
 loF = CREATEOBJECT("foxferd")
+loF.cMeldungsCursor = "curPdfRechnung"
+lcAlias = loF.cMeldungsCursor
 loF.cProfil = "EN16931"
 loF.cXsdPfad = FULLPATH("xsd")
-* Rechnung und Reportdaten hier befüllen.
-IF NOT loF.CreatePDF(FULLPATH("rechnung.frx"), FULLPATH("rechnung.pdf"))
+DO BeispielStandardDaten WITH loF
+llOk = loF.CreatePDF(FULLPATH("rechnung.frx"), FULLPATH("rechnung.pdf"))
+? llOk
+IF NOT llOk
     ? loF.cLastError
 ENDIF
+IF USED(lcAlias)
+    SELECT (lcAlias)
+    SCAN
+        ? Stufe, Position, BT, Regel, Text
+    ENDSCAN
+ENDIF
+loF = .NULL.
 ```
 
-Optional nimmt `CreatePDF(cFrx, cPdfDatei, oXfrx)` eine bereits erzeugte Sitzung an:
+Erwartet werden `.T.` und `rechnung.pdf` mit dem eingebetteten XML für 139,97 Euro netto,
+24,80 Euro Umsatzsteuer und 164,77 Euro brutto. Der sichtbare Inhalt stammt aus deinem Report.
+Ein erfolgreiches Ergebnis bestätigt keine PDF/A-Prüfung deines Reports.
+
+Optional kannst du eine frische XFRX-Sitzung übergeben. Dieser Ausschnitt ersetzt im
+obigen Beispiel den `CreatePDF`-Aufruf; er setzt das dort bereits befüllte `loF` voraus:
 
 ```foxpro
 loX = EVALUATE([XFRX("XFRX#INIT")])
@@ -33,89 +63,61 @@ llOk = loF.CreatePDF(FULLPATH("rechnung.frx"), FULLPATH("rechnung.pdf"), loX)
 loX = .NULL.
 ```
 
-Ohne drittes Argument löst der Adapter erst beim PDF-Aufruf
-`EVALUATE([XFRX("XFRX#INIT")])` auf. Der Anwender macht seine Installation über den
-VFP-Suchpfad erreichbar (xfrx.app, xfrx.fxp oder xfrx.prg). Bei eigener Einbindung
-übergeben Sie die Sitzung ausdrücklich. FoxFerd ändert den Suchpfad nicht.
-Ein fehlendes XFRX endet mit `.F.` und FEHLER `FX-PDF-02`.
+Ohne drittes Argument erzeugt FoxFerd die Sitzung beim PDF-Aufruf.
+Verwende je PDF eine frische Sitzung. FoxFerd konfiguriert und beendet auch eine übergebene
+Sitzung; verwende sie danach nicht für weitere Reports oder Anhänge.
+FoxFerd ändert den Suchpfad nicht. XML-Aufrufe benötigen weiterhin kein XFRX.
 
-Das ohne Bedienung ausführbare [Beispiel](../beispiele/05_xfrx_pdf.prg) nimmt FRX, PDF-Ziel und
-Schemawurzel optional entgegen. Ohne Parameter erstellt es einen kleinen Report unter
-`tests/out/beispiel-xfrx/`. Es akzeptiert sowohl ein erfolgreiches PDF als auch das erwartete
-Fehlen von XFRX; andere Fehler ergeben `.F.`. Im Test legt ein zusätzlicher Parameter fest,
-welcher Ausgang erwartet wird. Die Reportdaten bleiben beim Aufrufer.
+## Profile und Ausgabe
 
-## Profile und Ablauf
+| `cProfil` | Ergebnis |
+|---|---|
+| `EN16931` | PDF mit `factur-x.xml`, Factur-X-Stufe `EN 16931` |
+| `EXTENDED` | PDF mit `factur-x.xml`, Factur-X-Stufe `EXTENDED` |
+| `XRECHNUNG-CII` | FEHLER FX-PDF-01; XML mit `CreateXML` erzeugen |
 
-| cProfil | Factur-X-Stufe | Ergebnis |
-|---|---|---|
-| EN16931 | EN 16931 | PDF mit factur-x.xml |
-| EXTENDED | EXTENDED | PDF mit factur-x.xml |
-| XRECHNUNG-CII | - | FEHLER FX-PDF-01; als XML versenden |
+FoxFerd prüft zuerst die Rechnung. Bei einem Fachfehler spricht es XFRX nicht an.
+Das eingebettete XML durchläuft denselben Aufbau und dieselbe XSD-Prüfung wie bei
+`CreateXML`. Eine ausdrücklich abgeschaltete XSD-Prüfung bleibt eine Warnung.
 
-Zuerst prüft FoxFerd die Rechnung. Bei einem Validierungsfehler wird XFRX nicht angesprochen.
-Das XML entsteht über dieselbe Pipeline wie `CreateXML`, einschließlich XSD-Prüfung
-beziehungsweise deren ausdrücklicher Abschaltwarnung.
+Die Ausgabe ist ohne Viewer und Fortschrittsanzeige eingerichtet. Der Anhang erhält
+MIME-Typ `text/xml` und Beziehung `Alternative`. Die Metadaten nennen Dokumentart `INVOICE`,
+Dateiname `factur-x.xml`, Version `1.0` und das zum Profil passende Konformitätsniveau.
+Die Version `1.0` ist der Metadatenwert, kein Schalter für den XML-Standardstand.
 
-Danach folgen `SetParams(...,.T.,"",.T.,.F.,"PDF")`, `SetPDFA(.T.,"3B")`,
-`addAttachment(...,.T.,"Factur-X XML","text/xml","Alternative")`,
-am Anhang `CreateFACTURXMetadata(Stufe,"INVOICE","1.0")`, `ProcessReport(cFrx)` und
-`Finalize()`. Viewer und Fortschrittsanzeige sind abgeschaltet.
-Für die Datensitzung gilt die DataSession-Einstellung des FRX wie bei REPORT FORM; ein Report mit privater
-Datensitzung sieht die Cursor des Aufrufers nicht.
-Jede Rückgabe wird geprüft. Nach einem Fehler wird eine bereits eröffnete Sitzung noch
-abgeschlossen, um ihre Dateien freizugeben.
-
-XML und Hilfsdateien liegen in einem eigenen temporären Ordner beim Ziel; das PDF entsteht
-unter einem reservierten temporären Namen im selben Zielordner. Erst nach erfolgreichem
-Abschluss und Entfernen der Hilfsdateien ersetzt ein Windows-Rename die Zieldatei. Fehler
-lassen ein vorhandenes Ziel bytegleich und entfernen die eigenen temporären Dateien.
-XFRX benötigt Schreibrechte im Zielordner. Relative Pfade beziehen sich auf den aktuellen
-Ordner; laufwerksrelative Ziele wie `C:rechnung.pdf` werden abgewiesen.
+FoxFerd verwendet temporäre Dateien im Zielordner und ersetzt das Ziel erst nach
+Erfolg und Aufräumen. Bei einem Fehler bleibt eine vorhandene Zieldatei unverändert.
+Der Zielordner muss bereits existieren. Verwende absolute Pfade; laufwerksrelative
+Angaben wie `C:rechnung.pdf` werden abgewiesen.
 
 ## Meldungen
 
-`CreatePDF` liefert `.T.` bei Erfolg, sonst `.F.`. Meldungen stehen wie bei XML im
-eigenen Meldungscursor und in `cLastError`; vor dem Freigeben der Rechnung auswerten.
-Geschäftliche Validierungsregeln behalten ihre Kennungen.
+`CreatePDF` liefert `.T.` bei erfolgreicher Ausgabe, sonst `.F.`. Alle Meldungen stehen
+im [Meldungscursor](MELDUNGEN.md#meldungen-auslesen). `cLastError` enthält nur den letzten FEHLER.
+Geschäftsregeln behalten ihre Kennungen. PDF-Fehler verwenden diese Regeln:
 
-| Regel | FEHLER |
+| Regel | Ursache und Abhilfe |
 |---|---|
-| FX-PDF-01 | Profil für PDF nicht erlaubt |
-| FX-PDF-02 | XFRX nicht erreichbar, Initialisierung oder Sitzungsargument ungültig |
-| FX-PDF-03 | Benötigte Schnittstelle fehlt; XFRX ab 19.0 erforderlich |
-| FX-PDF-04 | Report fehlt, Ziel ungültig, nicht schreibbar oder nicht ersetzbar |
-| FX-PDF-05 | XML-Erzeugung fehlgeschlagen; weitere XML-Meldungen nennen den Grund |
-| FX-PDF-06 | SetParams oder SetPDFA fehlgeschlagen |
-| FX-PDF-07 | Anhang oder Factur-X-Metadaten fehlgeschlagen |
-| FX-PDF-08 | ProcessReport, Finalize oder PDF-Ausgabe fehlgeschlagen |
-| FX-PDF-09 | Eigene temporäre Dateien konnten nicht entfernt werden |
+| FX-PDF-01 | Profil nicht für PDF unterstützt; EN16931/EXTENDED oder XML-Ausgabe wählen |
+| FX-PDF-02 | XFRX fehlt oder Sitzung ungültig; Installation, Suchpfad und Initialisierung prüfen |
+| FX-PDF-03 | Erforderliche Schnittstelle fehlt; XFRX ab 19.0 bereitstellen |
+| FX-PDF-04 | FRX oder Zielpfad fehlerhaft; Datei, Schreibrechte und Sperren prüfen |
+| FX-PDF-05 | XML-Erzeugung fehlgeschlagen; weitere XML-Meldungen beheben |
+| FX-PDF-06 | Konfiguration der Ausgabe oder PDF/A fehlgeschlagen |
+| FX-PDF-07 | Anhang oder Factur-X-Metadaten konnten nicht angelegt werden |
+| FX-PDF-08 | Reportverarbeitung, Abschluss oder PDF-Ausgabe fehlgeschlagen |
+| FX-PDF-09 | Temporäre Dateien konnten nicht entfernt werden; Rechte und Dateisperren prüfen |
 
-## Grenzen und Nachweise
+## Den eigenen Report prüfen
 
-**Jeden eigenen Report einmal mit veraPDF abnehmen.** Schriften, Bilder, Transparenz und
-Reportcode beeinflussen die PDF/A-Konformität. FoxFerd prüft diese zur Laufzeit nicht.
-Signaturen und XRechnung als PDF gehören nicht zum Adapter.
+Prüfe jeden eigenen Report mit [veraPDF](https://verapdf.org/) auf PDF/A-Konformität.
+Schriften, Bilder und Reportcode beeinflussen das Ergebnis. FoxFerd führt diese Prüfung
+zur Laufzeit nicht aus. Prüfe das enthaltene XML zusätzlich mit dem zum Profil passenden
+[Rechnungsprüfer](MELDUNGEN.md#extern-prüfen) und vergleiche es mit dem sichtbaren Inhalt.
+Signaturen und XRechnung als PDF gehören nicht zur Ausgabe.
 
-Die Suite prüft Test-Doppel immer unter VFP 9 und VFPA. Für echte Tests liest der Runner
-`FOXFERD_XFRX`, ersatzweise die ignorierte Datei `tests/local-xfrx.txt`; darin steht nur der
-Ordner der eigenen Installation. Der Pfad wird nicht versioniert. Das FRX entsteht während
-des Laufs unter `tests/out/`. Für die Hostprüfung werden lokal Python mit `pypdf` benötigt;
-der Runner installiert nichts.
-
-Ohne konfiguriertes XFRX stehen die echten Fälle als `AUSGELASSEN` und
-`XFRX|nicht konfiguriert` in der Zusammenfassung. Ein solches Ergebnis erfüllt das
-WP34-Gate nicht. Mit Installation nennt `XFRX|<Version>` die tatsächlich geladene Fassung.
-Die Hostprüfung kontrolliert genau einen Anhang `factur-x.xml`, Bytegleichheit mit
-`CreateXML`, `AFRelationship Alternative`, PDF/A-Kennungen `3/B` und die vier
-Factur-X-Metadaten. Sie prüft auch Reportdaten im PDF und sich selbst mit falschen
-XML-Bytes, Profilen, Beziehungen und Metadaten. Das ersetzt keine veraPDF-Abnahme.
-
-Eine Testversion wird nicht umgangen. Verhindern ein Dialog oder Wasserzeichen den
-Nachweis, ist der echte Test blockiert. Fremddateien sind im Index und in der gesamten
-Git-Historie gesperrt: `xfrx*.app/fxp/prg`, `xfrxlib*.fll`, `hndlib*.dll` und
-`zlib*.dll`, auch unter Unterordnern und mit anderer Groß-/Kleinschreibung.
-
-Die verbindliche Entscheidung steht in [decisions/XFRX.md](decisions/XFRX.md).
-Die Aufrufparameter folgen der
-[Eqeus-Schnittstelle](https://eqeuscom.atlassian.net/wiki/spaces/DOC/pages/2430107722/).
+Die Formatangaben folgen der Factur-X-Spezifikation 1.09.2 im eigenen
+[FeRD-Download](https://www.ferd-net.de/standards/zugferd), Stand 18.11.2026.
+Die [Eqeus-Dokumentation](https://eqeuscom.atlassian.net/wiki/spaces/DOC/pages/2430107722/)
+beschreibt die XFRX-Schnittstelle. Die rechtliche Einordnung steht mit Quellen und dem
+Hinweis zur fehlenden Rechtsberatung in [Grundlagen](GRUNDLAGEN.md).
