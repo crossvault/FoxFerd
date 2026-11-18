@@ -518,6 +518,15 @@ function Get-DocsTechnicalRules {
         @('FX-TECH-02', 'FEHLER', 'WP08-GEGENPROBE', 'Die interne XML-Erzeugung meldet einen technischen Fehler.'),
         @('FX-TECH-04', 'FEHLER', 'WP04-ORDNER', 'Zieldatei oder Zielordner nicht nutzbar, zum Beispiel fehlender Zielordner.'),
         @('FX-TECH-04', 'FEHLER', 'WP14-FEHLT', 'Anhangquelle (BT-125) fehlt, ist gesperrt, leer oder nicht kodierbar; auch WP14-SPERRE und WP14-KORREKTUR.'),
+        @('FX-PDF-01', 'FEHLER', 'WP34-PROFIL', 'Profil ist fuer die PDF-Ausgabe nicht erlaubt.'),
+        @('FX-PDF-02', 'FEHLER', 'WP34-OHNE-XFRX', 'XFRX fehlt oder liefert keine verwendbare Sitzung.'),
+        @('FX-PDF-03', 'FEHLER', 'WP34-VERSION', 'XFRX-Schnittstelle unvollstaendig; Version ab 19.0 erforderlich.'),
+        @('FX-PDF-04', 'FEHLER', 'WP34-ZIEL', 'Report oder PDF-Ziel ist ungueltig, fehlt oder nicht schreibbar.'),
+        @('FX-PDF-05', 'FEHLER', 'WP34-ZIEL', 'Das temporaere Rechnungs-XML konnte nicht erzeugt werden.'),
+        @('FX-PDF-06', 'FEHLER', 'WP34-XFRX-FEHLER', 'SetParams oder SetPDFA von XFRX fehlgeschlagen.'),
+        @('FX-PDF-07', 'FEHLER', 'WP34-XFRX-FEHLER', 'XML-Anhang oder Factur-X-Metadaten von XFRX fehlgeschlagen.'),
+        @('FX-PDF-08', 'FEHLER', 'WP34-XFRX-FEHLER', 'ProcessReport, Finalize oder PDF-Ausgabe von XFRX fehlgeschlagen.'),
+        @('FX-PDF-09', 'FEHLER', 'WP34-ZIEL', 'Die Bereinigung eigener temporaerer PDF-Dateien ist fehlgeschlagen.'),
         @('XSD', 'FEHLER', 'WP04-SCHEMA', 'Die Schemapr{ue}fung weist das erzeugte XML zur{ue}ck.'),
         @('XSD', 'WARNUNG', 'WP04-OHNE-XSD', 'Ohne Schemapr{ue}fung entsteht XML mit einer Warnung.')
     )

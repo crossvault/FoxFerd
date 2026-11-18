@@ -15,3 +15,14 @@ tests/out/
 
 # Nicht Teil der Testsuite (DESIGN.md: eigene Test-PRG)
 FoxUnit/
+
+# Lokaler Pfad zu einem eigenen XFRX, siehe docs/XFRX.md
+tests/local-xfrx.txt
+
+# XFRX gehoert ausschliesslich dem Anwender, keine Weitergabe
+xfrx*.app
+xfrx*.fxp
+xfrx*.prg
+xfrxlib*.fll
+hndlib*.dll
+zlib*.dll
