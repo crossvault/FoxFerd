@@ -203,6 +203,9 @@ IF gcMode == ""
     DO BeginFile WITH "tests/faelle/wp34_pdf.prg"
     DO tests/faelle/wp34_pdf.prg
     DO EndFile
+    DO BeginFile WITH "tests/faelle/wp35_anwenderdoku.prg"
+    DO tests/faelle/wp35_anwenderdoku.prg
+    DO EndFile
 ENDIF
 
 IF gnFailures = 0

@@ -22,7 +22,10 @@ function Test-XfrxPdfs {
             $profile = 'EN16931'
             if ($case -ceq 'WP34-ECHT-EXT') { $profile = 'EXTENDED' }
             $name = 'wp34-echt-' + $profile.ToLowerInvariant()
-            $files = @(Get-ChildItem -LiteralPath (Join-Path $runRoot ('vfp-workers/' + $runtime)) -Filter ($name + '.pdf') -File -Recurse)
+            # Auch kurze Laufzeitpfade fuer Beispiele gehoeren zum aktuellen Lauf.
+            $files = @(foreach ($job in @($runtimeJobs | Where-Object { $_.Runtime -ceq $runtime })) {
+                Get-ChildItem -LiteralPath $job.Directory -Filter ($name + '.pdf') -File -Recurse
+            })
             Assert-Check ($files.Count -eq 1) ('PDF: genau eine aktuelle Ausgabe erwartet: ' + $runtime + ' ' + $case)
             $directory = $files[0].DirectoryName
             $entries += [pscustomobject]@{ runtime = $runtime; profile = $profile; pdf = $files[0].FullName

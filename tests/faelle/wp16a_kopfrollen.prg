@@ -689,6 +689,17 @@ FOR lnRolle = 1 TO 12
             = Assert(Wp16HatRegel(loF, "FX-PROFIL-01"), "Verbotenes Rollenfeld wird nicht verschwiegen")
         ENDIF
         loP.cRolle = ""
+        IF lnRolle = 6
+            loK = loP.AddKennung("LOKAL")
+            = Assert(EMPTY(loK.cSchema) AND loF.Validate(), "Lieferrolle erlaubt lokale Kennung ohne Schema")
+            loK.cSchema = "0088"
+            = Assert(NOT loF.Validate() AND Wp05Befund(loF, "FEHLER", "BT-71", "FX-TECH-03", ""), ;
+                "Kopfrolle weist Schema an lokaler Kennung in jedem Profil ab")
+            DO Wp07Dateischutz WITH loF, "wp16a-lokales-schema", tcProfil
+            loK.cSchema = ""
+            = Assert(loF.Validate() AND EMPTY(loF.cLastError), "Leeres Schema korrigiert die lokale Rollenkennung")
+            loK = .NULL.
+        ENDIF
     ENDIF
     loF = .NULL.
     loP = .NULL.

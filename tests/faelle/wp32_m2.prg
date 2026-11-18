@@ -116,10 +116,11 @@ LPARAMETERS tcProfil
 LOCAL llOk, lcDatei, lcMeldungen, laDateien[1], lnAnzahl, lnDatei
 * Jedes neue Beispiel braucht eine ausdrueckliche Erfolgs-/Fehlererwartung.
 lnAnzahl = ADIR(laDateien, "beispiele/*.prg")
-= Assert(lnAnzahl = 6, "Alle sechs Beispiele sind in der Abnahme erfasst")
+= Assert(lnAnzahl = 7, "Alle sieben Beispiele haben eine ausdrueckliche Erwartung")
 FOR lnDatei = 1 TO lnAnzahl
     = Assert(INLIST(LOWER(laDateien[lnDatei, 1]), "00_meldungen.prg", "01_standardrechnung.prg", ;
-        "02_rundungsfehler.prg", "03_extended.prg", "04_gutschrift.prg", "05_xfrx_pdf.prg"), "Beispiel hat eine Abnahmeerwartung")
+        "02_rundungsfehler.prg", "03_extended.prg", "04_gutschrift.prg", "05_xfrx_pdf.prg", ;
+        "06_erste_rechnung.prg"), "Beispiel hat eine Abnahmeerwartung")
 ENDFOR
 llOk = .F.
 DO (FULLPATH("beispiele/00_meldungen.prg")) WITH llOk

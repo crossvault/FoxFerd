@@ -251,6 +251,20 @@ FOR lnRolle = 1 TO 2
         loP = .NULL.
         loK = .NULL.
     ENDFOR
+    loF = Wp07Rechnung(tcProfil, .F.)
+    loP = IIF(lnRolle = 1, loF.oVerkaeufer, loF.oKaeufer)
+    loK = loP.AddKennung("LOKAL")
+    lcBT = IIF(lnRolle = 1, "BT-29", "BT-46")
+    = Assert(EMPTY(loK.cSchema) AND loF.Validate(), "Lokale Kennung ohne Schema ist zulaessig")
+    loK.cSchema = "0088"
+    = Assert(NOT loF.Validate() AND Wp05Befund(loF, "FEHLER", lcBT, "FX-TECH-03", ""), ;
+        "Lokale Kennung mit Schema wird in jedem Profil abgewiesen")
+    DO Wp07Dateischutz WITH loF, "wp15-lokales-schema" + ALLTRIM(STR(lnRolle)), tcProfil
+    loK.cSchema = ""
+    = Assert(loF.Validate() AND EMPTY(loF.cLastError), "Leeres Schema entfernt den lokalen Kennungsfehler")
+    loF = .NULL.
+    loP = .NULL.
+    loK = .NULL.
 ENDFOR
 loF = Wp07Rechnung(tcProfil, .F.)
 loK = loF.oKaeufer.AddKennung("LOKAL")

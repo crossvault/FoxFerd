@@ -470,7 +470,7 @@ ENDPROC
 PROCEDURE Wp08Beispiele
 LPARAMETERS tcProfil
 LOCAL laDateien[1], lnDatei, lcName, lcZiel, lcMeldungen, llOk, lcText
-= Assert(ADIR(laDateien, "beispiele/*.prg") = 6, "Alle sechs Beispiele werden ausgefuehrt")
+= Assert(ADIR(laDateien, "beispiele/*.prg") = 7, "Alle sieben Beispiele werden ausgefuehrt")
 FOR lnDatei = 1 TO ALEN(laDateien, 1)
     lcName = LOWER(laDateien[lnDatei, 1])
     lcZiel = "xml/bsp-" + LEFT(lcName, 2) + "-" + LOWER(tcProfil) + ".xml"
@@ -502,6 +502,10 @@ FOR lnDatei = 1 TO ALEN(laDateien, 1)
         DO beispiele/05_xfrx_pdf.prg WITH llOk, FULLPATH("bsp-05.frx"), ;
             FULLPATH("bsp-05.pdf"), Wp04XsdPfad(), .T.
         = Assert(NOT FILE("bsp-05.pdf"), "PDF-Beispiel meldet fehlendes XFRX ohne Datei")
+    CASE lcName == "06_erste_rechnung.prg"
+        * Der README-Code erzeugt unabhaengig von der umgebenden Profilrunde EN16931.
+        DO beispiele/06_erste_rechnung.prg WITH llOk
+        = Assert(FILE("erste-rechnung.xml"), "README-Beispiel schreibt seine erste XML-Datei")
     OTHERWISE
         = Assert(.F., "Beispiel ohne Runner-Erwartung: " + lcName)
     ENDCASE

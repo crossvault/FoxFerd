@@ -924,6 +924,11 @@ function Test-ReferenceFailures {
 
 function Get-WriterReferenceFixtures {
     # Compare-XmlOutputs hat zuvor die Dateien beider Laufzeiten byteweise verglichen.
+    if ('WP35-SCHNELLSTART' -like $Nur) {
+        $source = Join-Path $runRoot 'VFP9/xml/wp35-schnellstart-en16931.xml'
+        Assert-Check (Test-Path -LiteralPath $source -PathType Leaf) ('REFERENZ: README-Ausgabe fehlt: ' + $source)
+        [pscustomobject]@{ Name = 'wp35-schnellstart-en16931'; Source = $source; Profile = 'EN16931'; Case = 'WP35-SCHNELLSTART' }
+    }
     $cases = @(
         @('WP07-STANDARD', 'standard'), @('WP07-BYTES', 'bytes'), @('WP07-XPATH', 'xpath'),
         @('WP07-XPATH', 'codes'),
