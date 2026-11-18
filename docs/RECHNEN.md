@@ -246,8 +246,8 @@ Für `nSollSteuer` ergibt der Sollwert `0.665` gegen gerechnet 0,67 die gerundet
 Bei `AddSollSteuer` zählt der Betrag der gerundeten Differenz: 0,01 ist eine WARNUNG,
 mehr ist ein FEHLER.
 Für Sollwerte mit mehr als zwei Stellen kommt unabhängig davon die Warnung FX-DEZ-01 hinzu.
-Sie werden nicht als Ersatzwerte ins XML geschrieben. Bei einer Gruppenwarnung steht deshalb weiterhin die
-von FoxFerd berechnete Steuer in der Ausgabe.
+Sollwerte werden nicht als Ersatzwerte ins XML geschrieben. Bei einer Gruppenwarnung steht
+deshalb weiterhin die von FoxFerd berechnete Steuer in der Ausgabe.
 
 `AddSollSteuer` unterstützt S, Z, E, AE, G, K, O, L und M sowie B in XRechnung und EXTENDED.
 Für S und L muss der gerundete Satz positiv sein, für M nichtnegativ und für O null.
