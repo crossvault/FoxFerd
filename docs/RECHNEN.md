@@ -82,7 +82,7 @@ Mindestens eine Grenze ist nötig; das Ende darf nicht vor dem Anfang liegen.
 Kopf- und Positionszeitraum sind unabhängig.
 Sind alle Positionen mit Perioden versehen, entfällt der XRechnung-Hinweis zum fehlenden
 Leistungszeitraum auch ohne Kopfzeitraum oder Lieferdatum.
-Das ist keine Aussage über steuerliche Pflichtangaben; siehe [Grundlagen](GRUNDLAGEN.md).
+Das ist keine Aussage über steuerliche Pflichtangaben; siehe [Grundlagen](GRUNDLAGEN.md#was-der-empfänger-bekommt).
 
 EXTENDED kann zusätzliche Positionssteuer- und Bruttobeträge sowie Steuersummen beschreiben.
 Diese Angaben werden nicht noch einmal auf die gerechnete Rechnung aufgeschlagen.
@@ -240,8 +240,13 @@ EXTENDED-Zusätze wie Reihenfolge oder Basismenge ändern die Betragsformel nich
 | `AddSollSteuer(cKategorie,nSatz,nBetrag)` | Vergleich mit BT-117 für Kategorie und Satz; ein Cent Warnung, darüber Fehler FX-BT117-01 |
 
 `.NULL.` bedeutet kein Sollwert. Die Zahl 0 bedeutet eine tatsächliche Vorgabe.
-Alle Sollwerte werden für den Vergleich auf zwei Stellen gerundet. Sie werden nicht als
-Ersatzwerte ins XML geschrieben. Bei einer Gruppenwarnung steht deshalb weiterhin die
+Verglichen wird `ROUND(Sollwert - gerechneter Wert, 2)`, nicht ein vorher gerundeter Sollwert.
+Für `nSollSteuer` ergibt der Sollwert `0.665` gegen gerechnet 0,67 die gerundete Differenz
+-0,01 und damit FEHLER FX-SOLL-01, obwohl `ROUND(0.665, 2)` selbst 0,67 ergibt.
+Bei `AddSollSteuer` zählt der Betrag der gerundeten Differenz: 0,01 ist eine WARNUNG,
+mehr ist ein FEHLER.
+Für Sollwerte mit mehr als zwei Stellen kommt unabhängig davon die Warnung FX-DEZ-01 hinzu.
+Sie werden nicht als Ersatzwerte ins XML geschrieben. Bei einer Gruppenwarnung steht deshalb weiterhin die
 von FoxFerd berechnete Steuer in der Ausgabe.
 
 `AddSollSteuer` unterstützt S, Z, E, AE, G, K, O, L und M sowie B in XRechnung und EXTENDED.
@@ -347,6 +352,18 @@ Die [API](API.md#steuerwährung-und-ergebnisse) nennt die Eigenschaften.
 
 EXTENDED erlaubt `AddGliederung(cNummer,cName,cUntertyp[,nBetrag])` mit `GROUP` oder
 `INFORMATION`. `cElternnummer` verbindet eine Position mit ihrer Elternzeile.
+Eine mit `AddPosition` angelegte Zeile mit Elternbezug braucht ausdrücklich
+`cUntertyp = "DETAIL"`, sonst meldet EXTENDED FEHLER BR-FXEXT-06;
+ohne Elternbezug darf der Untertyp leer bleiben.
+
+Ausschnitt: `loP` ist eine bereits mit `AddPosition` angelegte Position.
+
+```foxpro
+loG = loF.AddGliederung("G1", "Leistungsgruppe", "GROUP")
+loP.cUntertyp = "DETAIL"
+loP.cElternnummer = "G1"
+```
+
 Nummern müssen eindeutig sein. Fehlende Eltern, Selbstbezüge und Zyklen sind Fehler.
 
 Nur Detailpositionen gehen in Steuer- und Rechnungssummen ein.

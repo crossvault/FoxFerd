@@ -90,6 +90,10 @@ Nach dem BMF-Schreiben vom 15.10.2025 ist der strukturierte Teil maßgeblich.
 Weicht das sichtbare PDF vom XML ab, kann der Bildteil als weitere Rechnung gelten.
 Deshalb müssen beide dieselben Rechnungsdaten zeigen. Die Pflichtangaben gehören ins XML;
 ein Link oder ein bloßer Verweis auf eine Anlage ersetzt sie nicht.
+Nach [§ 14 UStG](https://www.gesetze-im-internet.de/ustg_1980/__14.html) ist das Leistungsdatum
+steuerlich eine Pflichtangabe, auch wo die XRechnung-Regel nur einen HINWEIS gibt.
+In FoxFerd gibst du es über `dLieferdatum` (BT-72) oder `AddAbrechnungszeitraum` am Kopf
+oder an den Positionen an.
 
 Im ZUGFeRD-PDF heißt der Anhang `factur-x.xml`; die Spezifikation nennt für ihr Profil
 XRECHNUNG abweichend `xrechnung.xml`. Das erweitert FoxFerds PDF-Unterstützung nicht.

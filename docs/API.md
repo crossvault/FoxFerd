@@ -78,6 +78,7 @@ Für `EN16931` und `EXTENDED` braucht die Liefergruppe beim XML-Aufbau eigenen I
 Lieferdatum, eine Lieferpartei, ein zulässiger Lieferbezug oder in EXTENDED ein Transport.
 Ein Abrechnungszeitraum allein füllt diese Gruppe nicht. XRechnung erlaubt die leere
 Liefergruppe; ein fehlendes Leistungsdatum kann dort dennoch einen Hinweis auslösen.
+Zur steuerlichen Einordnung siehe [Grundlagen](GRUNDLAGEN.md#was-der-empfänger-bekommt).
 Bei Kategorie K gelten zusätzlich die konkreten Lieferangaben der Steuerregel.
 
 ## Kopf und Dokument
@@ -119,7 +120,7 @@ Lasse nicht benötigte Rollen vollständig leer.
 
 | Methode an `fxPartei` | Rückgabe und Verwendung |
 |---|---|
-| `AddKennung(cWert)` | `fxKennung`; optionale Schema-Kennung am Ergebnis ergänzen |
+| `AddKennung(cWert)` | `fxKennung` für eine lokale Kennung ohne Schema; `cSchema` bleibt leer, sonst FEHLER FX-TECH-03. Für eine Kennung mit Schema `AddGlobaleKennung` verwenden |
 | `AddGlobaleKennung(cWert,cSchema)` | `fxKennung` mit erforderlichem Schema |
 | `AddKontakt(cName,cTelefon,cEmail)` | `fxKontakt`; zusätzliche Kontakte nur dort, wo das Profil sie erlaubt |
 
@@ -209,7 +210,8 @@ Die Preis- und Nachlassformeln erklärt [Rechnen](RECHNEN.md#positionen).
 
 `AddGliederung(cNummer,cName,cUntertyp[,nBetrag])` am Rechnungsobjekt legt in EXTENDED
 eine `fxPosition` mit Untertyp `GROUP` oder `INFORMATION` an.
-Ohne Betrag verwendet sie `.NULL.`. Verbinde Zeilen über `cElternnummer`.
+Ohne Betrag verwendet sie `.NULL.`. Verbinde Zeilen über `cElternnummer`;
+eine `AddPosition`-Zeile mit `cElternnummer` braucht `cUntertyp = "DETAIL"`.
 Nur Detailpositionen gehen in die Rechnungssummen ein; [Hierarchien](RECHNEN.md#positionshierarchien)
 erklärt die Folgen für Anzeigebeträge.
 

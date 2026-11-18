@@ -194,6 +194,10 @@ FOR lnSoll = 1 TO ALEN(laSoll)
             ("gerechnet " + IIF(tlSteuer, "0.67", "4.17")) $ lcText, "Jede Abweichung nennt Sollwert und gerechneten Wert")
         = Assert(NOT loF.CreateXML(lcDatei) AND NOT FILE(lcDatei), "Gesamtsollfehler verhindert Datei")
     ENDIF
+    IF INLIST(lnSoll, 4, 5, 6)
+        = Assert(NOT EMPTY(Wp06Befund(loF, "WARNUNG", lcBt, "FX-DEZ-01", "")), ;
+            "Gesamtsoll mit mehr als zwei Stellen warnt unabhaengig vom Sollfehler")
+    ENDIF
     DO Wp06RundWerte WITH loF
     = Assert(NOT loF.lTechnischerFehler, "Sollabweichung ohne VFP-Fehler")
 ENDFOR
@@ -202,7 +206,7 @@ ENDPROC
 
 PROCEDURE Wp06Bt117
 LPARAMETERS tcProfil
-LOCAL loF, laSoll[9], lnSoll, lcStufe, lcText, lcPoint
+LOCAL loF, laSoll[10], lnSoll, lcStufe, lcText, lcPoint
 loF = Wp06Rechnung(tcProfil, .T., .F.)
 laSoll[1] = 0.67
 laSoll[2] = 0.66
@@ -213,6 +217,7 @@ laSoll[6] = 0.684
 laSoll[7] = 0.655
 laSoll[8] = 0.674
 laSoll[9] = 0.67
+laSoll[10] = 0.665
 lcPoint = SET("POINT")
 SET POINT TO ","
 FOR lnSoll = 1 TO ALEN(laSoll)
@@ -223,7 +228,7 @@ FOR lnSoll = 1 TO ALEN(laSoll)
         = Assert(EMPTY(Wp06Befund(loF, "WARNUNG", "BT-117", "FX-BT117-01", "")) AND ;
             EMPTY(Wp06Befund(loF, "FEHLER", "BT-117", "FX-BT117-01", "")), "Kein BT-117-Befund bei gerundeter Gleichheit")
     OTHERWISE
-        lcStufe = IIF(lnSoll = 2 OR lnSoll = 3 OR lnSoll = 6, "WARNUNG", "FEHLER")
+        lcStufe = IIF(lnSoll = 2 OR lnSoll = 3 OR lnSoll = 6 OR lnSoll = 10, "WARNUNG", "FEHLER")
         = Assert(loF.Validate() = (lcStufe == "WARNUNG"), tcProfil + ": BT-117-Toleranz bestimmt Ergebnis")
         lcText = Wp06Befund(loF, lcStufe, "BT-117", "FX-BT117-01", "")
         = Assert("0.67" $ lcText AND "Sollwert" $ lcText AND "gerechnet" $ lcText, "Beide Stufen nennen Rechnung mit Dezimalpunkt")
@@ -240,6 +245,10 @@ FOR lnSoll = 1 TO ALEN(laSoll)
             = Assert(EMPTY(loF.cLastError), "BT-117-WARNUNG ist kein FEHLER")
         ENDIF
     ENDCASE
+    IF INLIST(lnSoll, 6, 7, 8, 10)
+        = Assert(NOT EMPTY(Wp06Befund(loF, "WARNUNG", "BT-117", "FX-DEZ-01", "")), ;
+            "BT-117 mit mehr als zwei Stellen warnt unabhaengig von der Solltoleranz")
+    ENDIF
     DO Wp06RundWerte WITH loF
     = Assert(NOT loF.lTechnischerFehler, "BT-117-Vergleich ohne VFP-Ausnahme")
 ENDFOR

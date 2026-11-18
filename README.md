@@ -11,6 +11,7 @@ nur mit deinem eigenen XFRX, einem Werkzeug zur Ausgabe von FoxPro-Reports.
 ## Welches Format brauche ich?
 
 Ein Profil legt den Feldumfang und die Regeln einer Rechnung fest. Setze `cProfil` ausdrücklich.
+ZUGFeRD heißt in Frankreich Factur-X: ein PDF mit eingebettetem Rechnungs-XML.
 
 | Bedarf des Empfängers | `cProfil` | Ausgabe von FoxFerd |
 |---|---|---|
@@ -18,14 +19,14 @@ Ein Profil legt den Feldumfang und die Regeln einer Rechnung fest. Setze `cProfi
 | XRechnung mit deutschen Zusatzregeln | `XRECHNUNG-CII` | XML |
 | Zusätzliche Angaben, etwa Positionshierarchien | `EXTENDED` | XML; mit XFRX auch ZUGFeRD-PDF |
 
-ZUGFeRD heißt in Frankreich Factur-X: ein PDF mit eingebettetem Rechnungs-XML.
 FoxFerd verwendet ZUGFeRD 2.5.2 / Factur-X 1.09.2 und XRechnung 3.0.2.
 Kläre Format und Übertragungsweg mit dem Empfänger. Die
 [Grundlagen](docs/GRUNDLAGEN.md) erklären die Formate, Pflichten und Fristen mit Quellenstand.
 
 ## Voraussetzungen
 
-- Windows mit VFP 9 oder VFPA 10.2 und MSXML 6 in 32 Bit.
+- Windows mit VFP 9 oder VFPA 10.2 und MSXML 6 in 32 Bit, der XML-Komponente von Windows,
+  mit der FoxFerd XML aufbaut und prüft.
 - `foxferd.vcx` und `foxferd.vct` zusammen aus diesem Repository.
 - Eigene Downloads der Schemas und Einheitenliste. Ein Schema (XSD) beschreibt die erlaubte
   XML-Struktur; die Einheitenliste enthält Codes wie `C62` für Stück.
@@ -151,7 +152,8 @@ gespeichert; baue diese Rechnung mit einem neuen Objekt auf.
 
 ## PDF mit XFRX
 
-Mit einer eigenen XFRX-Lizenz ab Version 19.0 kann `CreatePDF` einen FRX-Report als PDF/A-3B
+Mit einer eigenen XFRX-Lizenz ab Version 19.0 kann `CreatePDF` einen FRX-Report als
+PDF/A-3B (siehe [Grundlagen](docs/GRUNDLAGEN.md#zugferd-und-factur-x))
 ausgeben und das XML als `factur-x.xml` einbetten. Das gilt für `EN16931` und `EXTENDED`;
 Report und XML müssen dieselben Rechnungsdaten zeigen. Den vollständigen Aufruf und die
 Vorbereitung beschreibt [PDF mit XFRX](docs/XFRX.md).

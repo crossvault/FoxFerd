@@ -16,7 +16,7 @@ LOCAL llOk, loD, lcOriginal, lcListe, lcFehlt
 llOk = .F.
 DO (FULLPATH("beispiele/06_erste_rechnung.prg")) WITH llOk
 = Assert(llOk AND FILE("erste-rechnung.xml"), "README erzeugt mit xsd die erste Datei")
-= Assert(NOT USED("curErsteRechnung"), "README liest Meldungen vor der Freigabe")
+= Assert(NOT USED("curErsteRechnung"), "README-Beispiel gibt seinen Meldungscursor frei")
 IF NOT llOk OR NOT FILE("erste-rechnung.xml")
     RETURN
 ENDIF

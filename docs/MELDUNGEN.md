@@ -107,7 +107,7 @@ Session findet ihn nicht. [Einbau](EINBAU.md#meldungscursor-und-data-session) be
 | FX-SOLL-01 / -02 / -04 | ERP-Steuer, Brutto oder Zahlbetrag weichen ab; [Rechenfolge](RECHNEN.md) vergleichen |
 | FX-BT117-01 | Sollsteuer je Kategorie/Satz weicht ab; bis ein Cent Warnung, darüber Fehler |
 | FX-DEZ-01 | Mehr Dezimalstellen als ausgegeben; Rundung und Eingabewert prüfen |
-| XSD | Schema fehlt, ist falsch oder Struktur wird abgewiesen; Schemawurzel und festgelegten Stand prüfen |
+| XSD | Schema fehlt, ist falsch oder Struktur wird abgewiesen; Schemawurzel und festgelegten Stand prüfen. Meldet MSXML einen nicht deklarierten Typ, obwohl alle Dateien vorliegen, ist der Pfad zu lang; eine kürzere Schemawurzel wählen, siehe [Schemas vorbereiten](EINBAU.md#schemas-vorbereiten) |
 | FX-TECH-01 / -02 | Technischer Fehler; Text zu COM-Aufruf, XML-Aufbau oder Dateizugriff auswerten |
 | FX-TECH-03 | Parametertyp, Häufigkeit oder Datenkombination unzulässig; bei Add-Ablehnung Objekt neu aufbauen |
 | FX-PDF-01 bis -09 | Profil, XFRX, Report oder Dateiausgabe; [PDF-Meldungen](XFRX.md#meldungen) prüfen |

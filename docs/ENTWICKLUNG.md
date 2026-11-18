@@ -57,6 +57,13 @@ Der Runner prüft Quellen, Fremddateisperren, beide Laufzeiten, Bytegleichheit u
 zuständigen Referenzvalidatoren. Ein vollständiger Lauf muss unter 480 Sekunden bleiben.
 Für die Entwicklung kannst du `-Nur 'WP35-*'` verwenden; das ersetzt den vollständigen Lauf nicht.
 
+Die Fälle zum README-Schnellstart und zu den Beispielen kopieren das Schemapaket unter
+`tests/out/<Laufkennung>/`. Der längste Zielpfad ist der Pfad des Hauptordners plus rund
+211 Zeichen. Der Hauptordner darf deshalb höchstens 48 Zeichen lang sein.
+Bei längerem Pfad meldet MSXML einen nicht deklarierten XSD-Typ, obwohl die Dateien vorhanden
+sind. Lege den Clone unter einem kürzeren Pfad an; siehe
+[Schemas vorbereiten](EINBAU.md#schemas-vorbereiten).
+
 Java und KoSIT werden ausschließlich für Referenzprüfungen gebraucht. Java-Aufrufe brauchen
 eine leere Stdin-Pipe, in PowerShell `@() | & java ...`.
 Die [Prüfumgebung](PRUEFUMGEBUNG.md#start-und-voraussetzungen) nennt Installationspfade und Parameter.
