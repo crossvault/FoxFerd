@@ -68,7 +68,9 @@ $vfpCases = @('WP01-LADEN', 'WP01-ERROR', 'WP01-PROFIL',
     'WP30-REGELN', 'WP30-DATUM', 'WP30-GEGENPROBE',
     'WP31-OHNE', 'WP31-MIT', 'WP31-INVARIANT', 'WP31-TYPEN', 'WP31-BT25',
     'WP31-WIEDERHOLUNG', 'WP31-BEISPIEL', 'WP31-GEGENPROBE',
-    'WP32-FELDER', 'WP32-POSITIV', 'WP32-EXTENDED', 'WP32-BEISPIELE', 'WP32-REGRESSION', 'WP32-LAST')
+    'WP32-FELDER', 'WP32-POSITIV', 'WP32-EXTENDED', 'WP32-BEISPIELE', 'WP32-REGRESSION', 'WP32-LAST',
+    'WP34-OHNE-XFRX', 'WP34-VERSION', 'WP34-PROFIL', 'WP34-BLOCKIERT', 'WP34-ABLAUF',
+    'WP34-XFRX-FEHLER', 'WP34-ZIEL', 'WP34-ECHT-EN', 'WP34-ECHT-EXT', 'WP34-BEISPIEL')
 $hostCases = @('WP01-RUN-FAIL', 'WP01-RUN-BERICHT', 'WP01-RUN-ALT', 'WP01-RUN-VFP',
     'WP01-RUN-FOXBIN', 'WP01-RUN-LIMIT', 'WP01-WAECHTER', 'WP01-VFP6-VERBOT',
     'WP01-VFP6-TEXT', 'WP01-ASCII', 'WP01-CRLF', 'WP01-PFLICHT',
@@ -76,7 +78,9 @@ $hostCases = @('WP01-RUN-FAIL', 'WP01-RUN-BERICHT', 'WP01-RUN-ALT', 'WP01-RUN-VF
     'WP02-BERICHT', 'WP02-JAVA', 'WP02-ALT', 'WP02-STDIN', 'WP02-BUDGET',
     'WP08-UNBEKANNT', 'WP08-REFERENZ', 'WP08-FOXFERD', 'WP08-M1-LAUFZEIT',
     'WP09-BLAETTER', 'WP09-FXEXT', 'WP09-XSD', 'WP09-FEHLER', 'WP09-REPRO', 'WP09-SCHNITT',
-    'WP10-STATUS', 'WP10-DRIFT', 'WP10-REPRO', 'WP22-CACHE', 'WP32-REGELN', 'WP32-SELBSTTEST', 'WP32-PAKET')
+    'WP10-STATUS', 'WP10-DRIFT', 'WP10-REPRO', 'WP22-CACHE', 'WP32-REGELN', 'WP32-SELBSTTEST', 'WP32-PAKET', 'WP34-WAECHTER')
+$script:xfrxPath = ''
+$script:xfrxVersions = @()
 $referencePlan = @()
 $phases = New-Object 'System.Collections.Generic.List[string]'
 $runtimeJobs = @()
@@ -231,7 +235,8 @@ function Find-ForeignPath {
     param([string[]] $Paths)
     @($Paths | Where-Object {
         $path = $_.Replace('\', '/').Trim('"')
-        $path -match '(?i)(^|/)(xsd|_ferd)/|^tools/kosit/|\.(xsd|sch|xslt)$|(^|/)FeRD-[^/]*\.xlsx$'
+        $path -match '(?i)(^|/)(xsd|_ferd)/|^tools/kosit/|\.(xsd|sch|xslt)$|(^|/)FeRD-[^/]*\.xlsx$' -or
+            $path -match '(?i)(^|/)(xfrx[^/]*\.(app|fxp|prg)|xfrxlib[^/]*\.fll|hndlib[^/]*\.dll|zlib[^/]*\.dll)$'
     })
 }
 
@@ -270,7 +275,9 @@ function Read-RuntimeReport {
         $line = $lines[$index]
         $parts = $line -split '\|'
         Assert-Check ($parts.Count -ge 4 -and $parts[0] -ceq 'CASE') ('BERICHT: ungueltige Zeile ' + $line)
-        Assert-Check ($parts[2] -ceq 'OK') ('ASSERT: ' + $line)
+        $skipped = $parts[2] -ceq 'AUSGELASSEN' -and -not $script:xfrxPath -and
+            $parts[1] -cin @('WP34-ECHT-EN', 'WP34-ECHT-EXT')
+        Assert-Check ($parts[2] -ceq 'OK' -or $skipped) ('ASSERT: ' + $line)
         $cases += $parts[1]
     }
     if ($Required.Count -gt 0) { Assert-RequiredCases $Required $cases }
@@ -318,6 +325,7 @@ function Start-Runtime {
     Write-Ascii (Join-Path $directory 'filter.id') $Nur
     Write-Ascii (Join-Path $directory 'cases.id') (($Cases -join "`r`n") + "`r`n")
     Write-Ascii (Join-Path $directory 'counter-profiles.id') (',' + ($CounterProfiles -join ',') + ',')
+    Write-Ascii (Join-Path $directory 'xfrx-root.id') $script:xfrxPath
     Write-Ascii (Join-Path $directory 'xsd-root.id') (Join-Path $root '_ferd/_foxferd-xsd')
     if ($referencePlan.Count -gt 0 -and -not $Mode) {
         Write-Ascii (Join-Path $directory 'reference-plan.txt') (($referencePlan -join "`r`n") + "`r`n")
@@ -480,6 +488,15 @@ function Test-HostGuards {
     $caught = $false
     try { Assert-RequiredCases @('WP01-FEHLT') @('WP01-LADEN') } catch { $caught = $_ -match 'PFLICHT:' }
     Assert-Check $caught 'PFLICHT: fehlende ID blieb gruen.'
+    foreach ($name in @('xfrx.app', 'xfrx-test.fxp', 'xfrxproxy.prg', 'xfrxlib64.fll', 'hndlib64.dll', 'zlib1.dll')) {
+        foreach ($source in @($indexPaths, $historyPaths)) {
+            foreach ($candidate in @($name, ('nested/' + $name.ToUpperInvariant()))) {
+                Assert-Check (@(Find-ForeignPath (@($source) + @($candidate))).Count -eq 1) ('WP34-WAECHTER: uebersehen ' + $candidate)
+            }
+        }
+    }
+    Assert-Check (@(Find-ForeignPath @('docs/XFRX.md', 'tests/reference-pdf.ps1', 'tests/faelle/wp34_pdf.prg',
+        'anderes-xfrx.app', 'xfrx.app.txt', 'xfrxlib.dll', 'hndlib.fll', 'zlib.prg')).Count -eq 0) 'WP34-WAECHTER: eigener Pfad gesperrt.'
     Test-Scanner
 }
 
@@ -679,6 +696,8 @@ try {
     . (Join-Path $PSScriptRoot 'gegenprobe.ps1')
     . (Join-Path $PSScriptRoot 'vfp-workers.ps1')
     . (Join-Path $PSScriptRoot 'reference-readers.ps1')
+    . (Join-Path $PSScriptRoot 'reference-pdf.ps1')
+    $script:xfrxPath = Get-LocalXfrxPath
     $manifest = Read-LocalToolManifest (Join-Path $PSScriptRoot 'local-tools.json')
     Assert-LocalTools $manifest
     $prepared = @(Prepare-LocalXsd $manifest)
@@ -791,6 +810,7 @@ try {
         }
         $runtimeCases[$runtime] = $actual
     }
+    Test-XfrxPdfs $selected
     $runtimeFinished = @($runtimeJobs | ForEach-Object { $_.Process.ExitTime.ToUniversalTime() } | Sort-Object -Descending)[0]
     Close-OwnedProcesses $runtimeJobs
     $runtimeJobs = @()
@@ -851,8 +871,13 @@ try {
                 $origin = 'Hostreferenzpruefung, dieser Laufzeit zugeordnet'
                 if ($vfpCases -contains $id) { $origin = 'VFP und Hostreferenzpruefung' }
             }
-            $summary += 'CASE|' + $runId + '|' + $runtime + '|' + $id + '|OK|' + $origin
-            Write-Output ($runtime + ' ' + $id + ' OK (' + $origin + ')')
+            $status = 'OK'
+            if ($id -cin @('WP34-ECHT-EN', 'WP34-ECHT-EXT')) {
+                if (-not $script:xfrxPath) { $status = 'AUSGELASSEN'; $origin = 'XFRX nicht konfiguriert' }
+                else { $origin = 'VFP und Host-PDF-Pruefung' }
+            }
+            $summary += 'CASE|' + $runId + '|' + $runtime + '|' + $id + '|' + $status + '|' + $origin
+            Write-Output ($runtime + ' ' + $id + ' ' + $status + ' (' + $origin + ')')
         }
     }
     if ($selected -ccontains 'WP32-LAST') {
@@ -872,6 +897,9 @@ try {
     $elapsed = $clock.Elapsed.TotalSeconds
     if ($elapsed -ge 300) { Write-Warning ('Zeitbudget: bereits ' + [Math]::Round($elapsed, 1) + ' s.') }
     Assert-Check ($elapsed -lt 480) 'BUDGET: Gesamtlimit 480 s erreicht.'
+    if (-not $script:xfrxPath) { $summary += 'XFRX|nicht konfiguriert' }
+    elseif ($script:xfrxVersions.Count -gt 0) { $summary += 'XFRX|' + ($script:xfrxVersions | Select-Object -Unique) }
+    else { $summary += 'XFRX|konfiguriert; kein echter Fall ausgewaehlt' }
     $summary += $phases.ToArray()
     $summary += $script:referenceCacheLine
     $summary += $vfpMeasurements.ToArray()

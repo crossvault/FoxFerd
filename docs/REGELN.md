@@ -3641,5 +3641,14 @@ Alle Einträge gelten für EN16931, XRECHNUNG-CII und EXTENDED.
 | FX-TECH-02 | FEHLER | von FoxFerd geprüft | WP08-GEGENPROBE | Die interne XML-Erzeugung meldet einen technischen Fehler. |
 | FX-TECH-04 | FEHLER | von FoxFerd geprüft | WP04-ORDNER | Zieldatei oder Zielordner nicht nutzbar, zum Beispiel fehlender Zielordner. |
 | FX-TECH-04 | FEHLER | von FoxFerd geprüft | WP14-FEHLT | Anhangquelle (BT-125) fehlt, ist gesperrt, leer oder nicht kodierbar; auch WP14-SPERRE und WP14-KORREKTUR. |
+| FX-PDF-01 | FEHLER | von FoxFerd geprüft | WP34-PROFIL | Profil ist fuer die PDF-Ausgabe nicht erlaubt. |
+| FX-PDF-02 | FEHLER | von FoxFerd geprüft | WP34-OHNE-XFRX | XFRX fehlt oder liefert keine verwendbare Sitzung. |
+| FX-PDF-03 | FEHLER | von FoxFerd geprüft | WP34-VERSION | XFRX-Schnittstelle unvollstaendig; Version ab 19.0 erforderlich. |
+| FX-PDF-04 | FEHLER | von FoxFerd geprüft | WP34-ZIEL | Report oder PDF-Ziel ist ungueltig, fehlt oder nicht schreibbar. |
+| FX-PDF-05 | FEHLER | von FoxFerd geprüft | WP34-ZIEL | Das temporaere Rechnungs-XML konnte nicht erzeugt werden. |
+| FX-PDF-06 | FEHLER | von FoxFerd geprüft | WP34-XFRX-FEHLER | SetParams oder SetPDFA von XFRX fehlgeschlagen. |
+| FX-PDF-07 | FEHLER | von FoxFerd geprüft | WP34-XFRX-FEHLER | XML-Anhang oder Factur-X-Metadaten von XFRX fehlgeschlagen. |
+| FX-PDF-08 | FEHLER | von FoxFerd geprüft | WP34-XFRX-FEHLER | ProcessReport, Finalize oder PDF-Ausgabe von XFRX fehlgeschlagen. |
+| FX-PDF-09 | FEHLER | von FoxFerd geprüft | WP34-ZIEL | Die Bereinigung eigener temporaerer PDF-Dateien ist fehlgeschlagen. |
 | XSD | FEHLER | von FoxFerd geprüft | WP04-SCHEMA | Die Schemaprüfung weist das erzeugte XML zurück. |
 | XSD | WARNUNG | von FoxFerd geprüft | WP04-OHNE-XSD | Ohne Schemaprüfung entsteht XML mit einer Warnung. |

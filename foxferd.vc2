@@ -48,6 +48,8 @@ DEFINE CLASS foxferd AS container
 		*m: betragodernull
 		*m: clasterror_access
 		*m: codenormal
+		*m: createpdf
+		*m: createpdflauf
 		*m: createxml
 		*m: createxmllauf
 		*m: cstandardstand_assign
@@ -1213,6 +1215,47 @@ DEFINE CLASS foxferd AS container
 			RETURN ""
 		ENDIF
 		RETURN ALLTRIM(CHRTRAN(tuWert, CHR(9) + CHR(10) + CHR(13), "   "))
+	ENDPROC
+
+	PROCEDURE CreatePDF
+		LPARAMETERS tcFrx, tcPdfDatei, toXfrx
+		LOCAL llOk
+		This.nLaufTiefe = This.nLaufTiefe + 1
+		llOk = This.CreatePdfLauf(tcFrx, tcPdfDatei, toXfrx)
+		This.nLaufTiefe = This.nLaufTiefe - 1
+		RETURN llOk
+	ENDPROC
+
+	PROTECTED PROCEDURE CreatePdfLauf
+		LPARAMETERS tcFrx, tcPdfDatei, toXfrx
+		LOCAL loPdf, llOk, llSauber
+		IF NOT This.Validate() OR This.lTechnischerFehler OR NOT EMPTY(This.cLastError)
+			RETURN .F.
+		ENDIF
+		loPdf = CREATEOBJECT("fxPdfAdapter")
+		IF This.lTechnischerFehler OR VARTYPE(loPdf) # "O" OR NOT This.MeldezielSetzen(loPdf)
+			RETURN .F.
+		ENDIF
+		IF NOT INLIST(This.cProfil, "EN16931", "EXTENDED")
+			RETURN loPdf.Fehler("FX-PDF-01", "PDF ist nur f{ue}r EN16931 und EXTENDED erlaubt. XRechnung wird als XML versandt.")
+		ENDIF
+		llOk = loPdf.Vorbereiten(tcFrx, tcPdfDatei)
+		IF llOk
+			llOk = This.CreateXML(loPdf.cXml)
+			IF NOT llOk
+				= loPdf.Fehler("FX-PDF-05", "Das Rechnungs-XML konnte nicht erzeugt werden. Die XML-Meldungen nennen den Grund.")
+			ENDIF
+		ENDIF
+		IF llOk
+			llOk = loPdf.Schreiben(toXfrx, This.cProfil)
+		ENDIF
+		llOk = llOk AND NOT This.lTechnischerFehler AND EMPTY(This.cLastError)
+		IF llOk
+			llOk = loPdf.Ausgeben()
+		ENDIF
+		llSauber = loPdf.Aufraeumen()
+		This.lTechnischerFehler = This.lTechnischerFehler OR loPdf.lTechnischerFehler
+		RETURN llOk AND llSauber AND NOT This.lTechnischerFehler AND EMPTY(This.cLastError)
 	ENDPROC
 
 	PROCEDURE CreateXML
@@ -8042,6 +8085,296 @@ DEFINE CLASS fxpartei AS fxbasis OF "foxferd.vcx"
 		        = This.aKontakte[lnKind].ZielSetzen(tcAlias, tnSession, tcDatei)
 		    ENDIF
 		ENDFOR
+	ENDPROC
+
+ENDDEFINE
+
+DEFINE CLASS fxpdfadapter AS fxbasis OF "foxferd.vcx" 
+ 	*< CLASSDATA: Baseclass="custom" Timestamp="" Scale="Pixels" Uniqueid="" />
+
+	*<DefinedPropArrayMethod>
+		*m: aufraeumen
+		*m: aufrufkette
+		*m: ausgeben
+		*m: fehler
+		*m: schreiben
+		*m: schrittok
+		*m: sitzungpruefen
+		*m: templeeren
+		*m: vorbereiten
+		*m: zielpfad
+		*p: cdatei
+		*p: cfrx
+		*p: cpdf
+		*p: cregel
+		*p: cschritt
+		*p: ctemp
+		*p: cxml
+		*p: lsitzungoffen
+	*</DefinedPropArrayMethod>
+
+	*<PropValue>
+		cdatei = 
+		cfrx = 
+		cpdf = 
+		cregel = 
+		cschritt = 
+		ctemp = 
+		cxml = 
+		lsitzungoffen = .F.
+		Name = "fxPdfAdapter"
+	*</PropValue>
+	
+	PROCEDURE Aufraeumen
+		LOCAL llOk
+		llOk = .T.
+		IF NOT EMPTY(This.cPdf)
+			DECLARE INTEGER DeleteFileA IN kernel32 AS fxPdfLoeschen STRING
+			IF fxPdfLoeschen(This.cPdf) = 0
+				llOk = This.Fehler("FX-PDF-09", "Tempor{ae}re PDF-Datei konnte nicht entfernt werden.")
+			ELSE
+				This.cPdf = ""
+			ENDIF
+		ENDIF
+		RETURN This.TempLeeren() AND llOk
+	ENDPROC
+
+	PROCEDURE Aufrufkette
+		LPARAMETERS toX, tcProfil
+		LOCAL luWert, loAnhang, lcStufe
+		This.cRegel = "FX-PDF-06"
+		This.cSchritt = "SetParams"
+		luWert = toX.SetParams(This.cPdf, ADDBS(This.cTemp), .T., "", .T., .F., "PDF")
+		IF This.lTechnischerFehler OR NOT INLIST(VARTYPE(luWert), "N", "I", "B") OR NOT luWert == 0
+			RETURN This.Fehler("FX-PDF-06", "XFRX SetParams hat das PDF-Ziel abgewiesen.")
+		ENDIF
+		This.lSitzungOffen = .T.
+		This.cSchritt = "SetPDFA"
+		luWert = toX.SetPDFA(.T., "3B")
+		IF NOT This.SchrittOk(luWert)
+			RETURN .F.
+		ENDIF
+		This.cRegel = "FX-PDF-07"
+		This.cSchritt = "addAttachment"
+		loAnhang = toX.addAttachment(This.cXml, .T., "Factur-X XML", "text/xml", "Alternative")
+		IF This.lTechnischerFehler OR VARTYPE(loAnhang) # "O"
+			RETURN This.Fehler("FX-PDF-07", "XFRX addAttachment hat das Rechnungs-XML abgewiesen.")
+		ENDIF
+		IF NOT PEMSTATUS(loAnhang, "CreateFACTURXMetadata", 5)
+			RETURN This.Fehler("FX-PDF-03", "XFRX ab 19.0 erforderlich; Methode CreateFACTURXMetadata fehlt.")
+		ENDIF
+		lcStufe = IIF(tcProfil == "EXTENDED", "EXTENDED", "EN 16931")
+		This.cSchritt = "CreateFACTURXMetadata"
+		luWert = loAnhang.CreateFACTURXMetadata(lcStufe, "INVOICE", "1.0")
+		IF NOT This.SchrittOk(luWert)
+			RETURN .F.
+		ENDIF
+		loAnhang = .NULL.
+		This.cRegel = "FX-PDF-08"
+		This.cSchritt = "ProcessReport"
+		luWert = toX.ProcessReport(This.cFrx)
+		IF NOT This.SchrittOk(luWert)
+			RETURN .F.
+		ENDIF
+		This.cSchritt = "Finalize"
+		This.lSitzungOffen = .F.
+		luWert = toX.Finalize()
+		RETURN This.SchrittOk(luWert)
+	ENDPROC
+
+	PROCEDURE Ausgeben
+		LOCAL lnErgebnis, laDatei[1]
+		IF ADIR(laDatei, This.cPdf) # 1
+			RETURN This.Fehler("FX-PDF-08", "XFRX hat keine PDF-Datei geschrieben.")
+		ENDIF
+		IF laDatei[1, 2] = 0
+			RETURN This.Fehler("FX-PDF-08", "XFRX hat eine leere PDF-Datei geschrieben.")
+		ENDIF
+		* Erst alle Hilfsdateien entfernen, dann das Ziel atomar ersetzen.
+		IF NOT This.TempLeeren()
+			RETURN .F.
+		ENDIF
+		This.cRegel = "FX-PDF-04"
+		This.cSchritt = "PDF-Zieldatei ersetzen"
+		DECLARE INTEGER MoveFileExA IN kernel32 AS fxPdfErsetzen STRING, STRING, INTEGER
+		lnErgebnis = fxPdfErsetzen(This.cPdf, This.cDatei, 9)
+		IF lnErgebnis = 0 OR This.lTechnischerFehler
+			RETURN This.Fehler("FX-PDF-04", "Die PDF-Zieldatei l{ae}sst sich nicht ersetzen: {1}", This.cDatei)
+		ENDIF
+		This.cPdf = ""
+		RETURN .T.
+	ENDPROC
+
+	PROCEDURE Error
+		LPARAMETERS tnError, tcMethod, tnLine
+		LOCAL lcUrsache
+		lcUrsache = MESSAGE()
+		This.lTechnischerFehler = .T.
+		IF This.lInError
+			RETURN
+		ENDIF
+		This.lInError = .T.
+		= This.Fehler(This.cRegel, "PDF: {1}", This.cSchritt + ": " + lcUrsache)
+		This.lInError = .F.
+	ENDPROC
+
+	PROCEDURE Fehler
+		LPARAMETERS tcRegel, tcText, tcWert
+		This.cLastError = This.MeldungsText(tcText, tcWert)
+		= This.Eintragen("FEHLER", "", "", tcRegel, This.cLastError)
+		RETURN .F.
+	ENDPROC
+
+	PROCEDURE Schreiben
+		LPARAMETERS toXfrx, tcProfil
+		LOCAL loX, llOk, luEnde
+		This.cRegel = "FX-PDF-02"
+		This.cSchritt = "XFRX initialisieren; eigene Installation erforderlich"
+		loX = .NULL.
+		IF VARTYPE(toXfrx) = "O"
+			loX = toXfrx
+		ELSE
+			IF NOT ISNULL(toXfrx) AND NOT (VARTYPE(toXfrx) = "L" AND NOT toXfrx)
+				RETURN This.Fehler("FX-PDF-02", "Die XFRX-Sitzung muss ein Objekt sein.")
+			ENDIF
+			IF NOT FILE("xfrx.app") AND NOT FILE("xfrx.fxp") AND NOT FILE("xfrx.prg")
+				RETURN This.Fehler("FX-PDF-02", "XFRX fehlt im Suchpfad. Eigene XFRX-Installation ab 19.0 erforderlich.")
+			ENDIF
+			* Keine Bauabhaengigkeit: Aufloesung erst beim PDF-Aufruf.
+			loX = EVALUATE([XFRX("XFRX#INIT")])
+		ENDIF
+		IF This.lTechnischerFehler
+			RETURN .F.
+		ENDIF
+		IF VARTYPE(loX) # "O"
+			RETURN This.Fehler("FX-PDF-02", "XFRX fehlt oder liefert keine Sitzung. Eigene XFRX-Installation ab 19.0 erforderlich.")
+		ENDIF
+		IF NOT This.SitzungPruefen(loX)
+			RETURN .F.
+		ENDIF
+		llOk = This.Aufrufkette(loX, tcProfil)
+		IF This.lSitzungOffen
+			* Auch nach einem abgewiesenen Schritt die von XFRX geoeffneten Dateien schliessen.
+			This.lSitzungOffen = .F.
+			This.cRegel = "FX-PDF-08"
+			This.cSchritt = "Finalize nach Fehler"
+			luEnde = .NULL.
+			luEnde = loX.Finalize()
+			= This.SchrittOk(luEnde)
+		ENDIF
+		loX = .NULL.
+		RETURN llOk AND NOT This.lTechnischerFehler
+	ENDPROC
+
+	PROCEDURE SchrittOk
+		LPARAMETERS tuWert
+		LOCAL llOk
+		llOk = .F.
+		DO CASE
+		CASE VARTYPE(tuWert) = "L"
+			llOk = tuWert
+		CASE INLIST(VARTYPE(tuWert), "N", "I", "B")
+			llOk = tuWert = 0
+		ENDCASE
+		IF NOT llOk OR This.lTechnischerFehler
+			RETURN This.Fehler(This.cRegel, "XFRX-Schritt fehlgeschlagen: {1}", This.cSchritt)
+		ENDIF
+		RETURN .T.
+	ENDPROC
+
+	PROCEDURE SitzungPruefen
+		LPARAMETERS toX
+		LOCAL laMethoden[1], lnM
+		This.cRegel = "FX-PDF-03"
+		This.cSchritt = "XFRX-Schnittstelle ab 19.0 pruefen"
+		= ALINES(laMethoden, STRTRAN("SetParams SetPDFA addAttachment ProcessReport Finalize", " ", CHR(13)))
+		FOR lnM = 1 TO ALEN(laMethoden)
+			IF NOT PEMSTATUS(toX, laMethoden[lnM], 5)
+				RETURN This.Fehler("FX-PDF-03", "XFRX ab 19.0 erforderlich; Methode fehlt: {1}", laMethoden[lnM])
+			ENDIF
+		ENDFOR
+		RETURN NOT This.lTechnischerFehler
+	ENDPROC
+
+	PROCEDURE TempLeeren
+		LOCAL laDateien[1], lnAnzahl, lnD, llOk, lnR
+		IF EMPTY(This.cTemp)
+			RETURN .T.
+		ENDIF
+		This.cRegel = "FX-PDF-09"
+		This.cSchritt = "Temporaere PDF-Dateien entfernen"
+		DECLARE INTEGER DeleteFileA IN kernel32 AS fxPdfLoeschen STRING
+		DECLARE INTEGER RemoveDirectoryA IN kernel32 AS fxPdfOrdnerLoeschen STRING
+		llOk = .T.
+		lnAnzahl = ADIR(laDateien, ADDBS(This.cTemp) + "*.*", "HS")
+		FOR lnD = 1 TO lnAnzahl
+			IF fxPdfLoeschen(ADDBS(This.cTemp) + laDateien[lnD, 1]) = 0
+				llOk = .F.
+			ENDIF
+		ENDFOR
+		lnR = fxPdfOrdnerLoeschen(This.cTemp)
+		IF llOk AND lnR # 0
+			This.cTemp = ""
+			RETURN .T.
+		ENDIF
+		RETURN This.Fehler("FX-PDF-09", "Tempor{ae}re PDF-Dateien konnten nicht vollst{ae}ndig entfernt werden.")
+	ENDPROC
+
+	PROCEDURE Vorbereiten
+		LPARAMETERS tcFrx, tcDatei
+		LOCAL lcTemp, lnHandle
+		This.cRegel = "FX-PDF-04"
+		This.cSchritt = "Report und Ziel vorbereiten"
+		IF NOT INLIST(VARTYPE(tcFrx), "C", "M") OR EMPTY(tcFrx)
+			RETURN This.Fehler("FX-PDF-04", "Der FRX-Dateiname fehlt oder hat einen falschen Typ.")
+		ENDIF
+		IF NOT FILE(tcFrx)
+			RETURN This.Fehler("FX-PDF-04", "Der Report fehlt: {1}", tcFrx)
+		ENDIF
+		IF NOT INLIST(VARTYPE(tcDatei), "C", "M") OR EMPTY(tcDatei)
+			RETURN This.Fehler("FX-PDF-04", "Der PDF-Dateiname fehlt oder hat einen falschen Typ.")
+		ENDIF
+		This.cFrx = FULLPATH(tcFrx)
+		This.cDatei = This.ZielPfad(tcDatei)
+		IF This.lTechnischerFehler OR EMPTY(This.cDatei)
+			RETURN .F.
+		ENDIF
+		IF NOT DIRECTORY(JUSTPATH(This.cDatei))
+			RETURN This.Fehler("FX-PDF-04", "Der PDF-Zielordner fehlt: {1}", JUSTPATH(This.cDatei))
+		ENDIF
+		DECLARE INTEGER CreateDirectoryA IN kernel32 AS fxPdfOrdner STRING, INTEGER
+		DECLARE INTEGER CreateFileA IN kernel32 AS fxPdfReservieren STRING, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER
+		DECLARE INTEGER CloseHandle IN kernel32 AS fxPdfSchliessen INTEGER
+		lcTemp = ADDBS(JUSTPATH(This.cDatei)) + "fxpdf" + SYS(2015)
+		IF fxPdfOrdner(lcTemp, 0) = 0
+			RETURN This.Fehler("FX-PDF-04", "Tempor{ae}rer PDF-Ordner nicht schreibbar: {1}", lcTemp)
+		ENDIF
+		* Nur selbst angelegte Ressourcen werden spaeter entfernt.
+		This.cTemp = lcTemp
+		This.cXml = ADDBS(lcTemp) + "factur-x.xml"
+		lnHandle = fxPdfReservieren(lcTemp + ".pdf", 1073741824, 0, 0, 1, 128, 0)
+		IF lnHandle = -1 OR This.lTechnischerFehler
+			RETURN This.Fehler("FX-PDF-04", "Tempor{ae}re PDF-Datei nicht schreibbar.")
+		ENDIF
+		This.cPdf = lcTemp + ".pdf"
+		= fxPdfSchliessen(lnHandle)
+		RETURN NOT This.lTechnischerFehler
+	ENDPROC
+
+	PROCEDURE ZielPfad
+		LPARAMETERS tcDatei
+		LOCAL lcName
+		lcName = CHRTRAN(ALLTRIM(tcDatei), "/", "\")
+		DO CASE
+		CASE LEFT(lcName, 2) == "\\" OR SUBSTR(lcName, 2, 2) == ":\"
+			RETURN lcName
+		CASE SUBSTR(lcName, 2, 1) == ":"
+			= This.Fehler("FX-PDF-04", "Laufwerksrelative Zieldateinamen sind nicht erlaubt: {1}", lcName)
+			RETURN ""
+		CASE LEFT(lcName, 1) == "\"
+			RETURN SYS(5) + lcName
+		ENDCASE
+		RETURN ADDBS(SYS(5) + SYS(2003)) + lcName
 	ENDPROC
 
 ENDDEFINE

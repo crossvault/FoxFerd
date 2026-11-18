@@ -116,10 +116,10 @@ LPARAMETERS tcProfil
 LOCAL llOk, lcDatei, lcMeldungen, laDateien[1], lnAnzahl, lnDatei
 * Jedes neue Beispiel braucht eine ausdrueckliche Erfolgs-/Fehlererwartung.
 lnAnzahl = ADIR(laDateien, "beispiele/*.prg")
-= Assert(lnAnzahl = 5, "Alle fuenf Beispiele sind in der Abnahme erfasst")
+= Assert(lnAnzahl = 6, "Alle sechs Beispiele sind in der Abnahme erfasst")
 FOR lnDatei = 1 TO lnAnzahl
     = Assert(INLIST(LOWER(laDateien[lnDatei, 1]), "00_meldungen.prg", "01_standardrechnung.prg", ;
-        "02_rundungsfehler.prg", "03_extended.prg", "04_gutschrift.prg"), "Beispiel hat eine Abnahmeerwartung")
+        "02_rundungsfehler.prg", "03_extended.prg", "04_gutschrift.prg", "05_xfrx_pdf.prg"), "Beispiel hat eine Abnahmeerwartung")
 ENDFOR
 llOk = .F.
 DO (FULLPATH("beispiele/00_meldungen.prg")) WITH llOk
@@ -137,6 +137,10 @@ DO (FULLPATH("beispiele/03_extended.prg")) WITH llOk, tcProfil, Wp04XsdPfad(), l
 lcDatei = "xml/wp32-beispiel04-" + LOWER(tcProfil) + ".xml"
 DO (FULLPATH("beispiele/04_gutschrift.prg")) WITH llOk, tcProfil, Wp04XsdPfad(), lcDatei
 = Assert(llOk AND FILE(lcDatei), "04 erwartet umgewandelte Gutschrift")
+= STRTOFILE("Marker fuer fehlendes XFRX", "wp32-beispiel05.frx")
+DO (FULLPATH("beispiele/05_xfrx_pdf.prg")) WITH llOk, FULLPATH("wp32-beispiel05.frx"), ;
+    FULLPATH("wp32-beispiel05.pdf"), Wp04XsdPfad(), .T.
+= Assert(llOk AND NOT FILE("wp32-beispiel05.pdf"), "05 erwartet ohne XFRX eine kontrollierte Meldung")
 ENDPROC
 
 PROCEDURE Wp32Regression

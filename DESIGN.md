@@ -13,7 +13,9 @@ Probleme mit BT-Nummer und Regel. Fehlende Felder und Rundungsabweichungen falle
 
 Nicht Teil von FoxFerd:
 
-- PDF-Einbettung (PDF/A-3)
+- eigene PDF-Erzeugung oder PDF-Einbettung (PDF/A-3). Seit WP34 gibt es nur einen optionalen Adapter für XFRX: Hat der
+  Anwender eine eigene XFRX-Lizenz, lässt FoxFerd dessen XFRX aus einem FRX ein PDF/A-3 mit eingebettetem XML schreiben.
+  FoxFerd liefert kein Stück von XFRX mit, siehe [docs/XFRX.md](docs/XFRX.md).
 - Einlesen eingehender Rechnungen
 - XRechnung-Extension mit ihren Unterpositionen (BG-DEX-01). Die Positionshierarchie von EXTENDED (BT-X-8 `GROUP` und
   `INFORMATION`) gehört dagegen dazu, weil EXTENDED komplett umgesetzt wird.

@@ -3,10 +3,10 @@
 Klassenbibliothek in Visual FoxPro, die den XML-Payload für ZUGFeRD und XRechnung erzeugt und vorher selbst prüft.
 Entwickelt von der crossVault GmbH, Lizenz: [MIT](LICENSE).
 
-**Stand: M2-Abnahme (WP32).** Stufe 1 umfasst `EN16931`, `XRECHNUNG-CII` und `EXTENDED`
+**Stand: M2-Abnahme (WP32), optionaler XFRX-Adapter (WP34).** Stufe 1 umfasst `EN16931`, `XRECHNUNG-CII` und `EXTENDED`
 mit vollständigen Feld- und Regelnachweisen. Der feste Standardstand ist **ZUGFeRD 2.5.2 /
 Factur-X 1.09.2 / XRechnung 3.0.2**, KoSIT-Bundle vom 31.08.2026. Eine andere Standardversion
-ist kein API-Schalter. UBL, BASIC, PDF-Einbettung und das Einlesen von Rechnungen gehören
+ist kein API-Schalter. UBL, BASIC und das Einlesen von Rechnungen gehören
 nicht zu Stufe 1. Fremdschemas und Codelisten gehören nicht zum Repository.
 Das Design steht in [DESIGN.md](DESIGN.md), die Regeln für Beiträge in
 [docs/KONVENTIONEN.md](docs/KONVENTIONEN.md) und die verbindlichen Kontrollbelege in
@@ -109,6 +109,27 @@ und Kontrollbelege aus den im Manifest genannten Quellen. `tests/prepare-xsd.ps1
 diese Quellen für die Suite vor. `tools/prepare-xsd.ps1` benötigt keinen Testlauf und kein Java.
 `WP32-PAKET` prüft das Skript mit einer kleinen, selbst erzeugten ZIP/XLSX-Fixture einschließlich
 fehlender Quellen, falscher Hashes, falscher Einheitenliste und unveränderter Ziele bei Quellfehlern.
+
+## PDF mit XFRX
+
+`CreatePDF(cFrx, cPdfDatei, oXfrx)` ergänzt die XML-API um einen optionalen Adapter für
+ein eigenes **XFRX ab 19.0 von Eqeus mit eigener Lizenz**. FoxFerd liefert kein XFRX mit.
+Der Adapter erzeugt für `EN16931` und `EXTENDED` ein PDF/A-3B mit eingebettetem
+`factur-x.xml`. `XRECHNUNG-CII` wird als PDF mit FEHLER abgewiesen.
+
+Reportdaten und Variablen stellt der Aufrufer wie für `REPORT FORM` bereit.
+Ohne übergebene Sitzung wird XFRX erst beim PDF-Aufruf zur Laufzeit gesucht.
+Fehler stehen im Meldungscursor mit `FX-PDF-nn`; ein vorhandenes PDF bleibt bei Fehlern
+unverändert. XML-Erzeugung braucht weiterhin kein XFRX.
+
+[Jeden Report einmal mit veraPDF abnehmen](docs/XFRX.md#grenzen-und-nachweise):
+die tatsächliche PDF/A-Konformität hängt vom Report ab. Aufruf, Voraussetzungen und
+Fehlerkennungen stehen in [docs/XFRX.md](docs/XFRX.md), ein lauffähiges Beispiel in
+[05_xfrx_pdf.prg](beispiele/05_xfrx_pdf.prg).
+Echte Tests werden über `FOXFERD_XFRX` oder die ignorierte Datei `tests/local-xfrx.txt`
+konfiguriert; für deren PDF-Hostprüfung wird lokal Python mit `pypdf` benötigt.
+Ohne Konfiguration meldet die Suite die echten Fälle als `AUSGELASSEN`; das WP34-Gate
+verlangt echte Nachweise und eine geladene XFRX-Version in der Zusammenfassung.
 
 ## Voraussetzungen und Testlauf
 
@@ -520,7 +541,7 @@ Der einzige Testeinstieg bleibt `tests/run-tests.ps1`. Die vollständige Falllis
 | `WP08-GEGENPROBE` | Jede WP05/WP06-Regel mit API-Befund und demselben Objekt im internen Writer ohne erneutes Validate |
 | `WP08-UNBEKANNT`, `WP08-REFERENZ`, `WP08-FOXFERD` | Künstliche Ergebnisdateien mit unbekannten, fehlenden oder unbegründet zusätzlichen Befunden werden abgewiesen |
 | `WP08-BT117` | Beide Vorzeichen der Centwarnung und der strengeren Fehlergrenze; gerechnete Werte bleiben maßgeblich |
-| `WP08-BEISPIELE` | Alle Beispiele in drei Profilen, Rundungsfehler mit Meldungsausgabe und ohne XML |
+| `WP08-BEISPIELE` | XML-Beispiele in drei Profilen, Rundungsfehler mit Meldungsausgabe; PDF-Beispiel kontrolliert ohne XFRX |
 | `WP08-M1-FEHLER` | Pflicht- und Rundungsfehler schützen neue und vorhandene Dateien; BT, Regel und Text bleiben lesbar |
 | `WP08-M1-RECHNEN` | BT-131, BG-23, Summen, beide Gesamtsollwerte, NULL/0 und Rundungsgrenzen |
 | `WP08-M1-XSD` | Abschaltbare XSD-Prüfung warnt, fachliche FEHLER sperren weiterhin jede Datei |

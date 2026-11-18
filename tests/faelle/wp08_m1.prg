@@ -470,7 +470,7 @@ ENDPROC
 PROCEDURE Wp08Beispiele
 LPARAMETERS tcProfil
 LOCAL laDateien[1], lnDatei, lcName, lcZiel, lcMeldungen, llOk, lcText
-= Assert(ADIR(laDateien, "beispiele/*.prg") = 5, "Alle fuenf Beispiele werden ausgefuehrt")
+= Assert(ADIR(laDateien, "beispiele/*.prg") = 6, "Alle sechs Beispiele werden ausgefuehrt")
 FOR lnDatei = 1 TO ALEN(laDateien, 1)
     lcName = LOWER(laDateien[lnDatei, 1])
     lcZiel = "xml/bsp-" + LEFT(lcName, 2) + "-" + LOWER(tcProfil) + ".xml"
@@ -497,6 +497,11 @@ FOR lnDatei = 1 TO ALEN(laDateien, 1)
     CASE lcName == "04_gutschrift.prg"
         DO beispiele/04_gutschrift.prg WITH llOk, tcProfil, Wp04XsdPfad(), lcZiel
         = Assert(FILE(lcZiel), "Gutschriftbeispiel schreibt XML samt XSD")
+    CASE lcName == "05_xfrx_pdf.prg"
+        = STRTOFILE("Marker fuer fehlendes XFRX", "bsp-05.frx")
+        DO beispiele/05_xfrx_pdf.prg WITH llOk, FULLPATH("bsp-05.frx"), ;
+            FULLPATH("bsp-05.pdf"), Wp04XsdPfad(), .T.
+        = Assert(NOT FILE("bsp-05.pdf"), "PDF-Beispiel meldet fehlendes XFRX ohne Datei")
     OTHERWISE
         = Assert(.F., "Beispiel ohne Runner-Erwartung: " + lcName)
     ENDCASE

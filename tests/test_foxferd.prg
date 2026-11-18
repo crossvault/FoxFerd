@@ -199,6 +199,10 @@ IF gcMode == ""
     DO BeginFile WITH "tests/faelle/wp32_m2.prg"
     DO tests/faelle/wp32_m2.prg
     DO EndFile
+    SET PROCEDURE TO tests/faelle/wp34_pdf.prg ADDITIVE
+    DO BeginFile WITH "tests/faelle/wp34_pdf.prg"
+    DO tests/faelle/wp34_pdf.prg
+    DO EndFile
 ENDIF
 
 IF gnFailures = 0
@@ -241,6 +245,9 @@ ENDFUNC
 PROCEDURE EndCase
 LOCAL lcStatus
 lcStatus = "OK"
+IF LEFT(gcDetails, 13) == "AUSGELASSEN: "
+    lcStatus = "AUSGELASSEN"
+ENDIF
 IF gnCaseFailures > 0
     lcStatus = "FAIL"
 ENDIF
